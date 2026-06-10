@@ -75,7 +75,7 @@ static void acquireWindow() {
   for (int i = 0; i < N_SAMPLES; i++) {
     while ((int32_t)(micros() - next) < 0) {}
     next += periodUs;
-    float v = analogRead(PIN_CT) * ADC_VREF / ADC_MAX;
+    float v = analogReadMilliVolts(PIN_CT) / 1000.0f;
     sampleBuf[i] = v;
     acc += v;
   }
