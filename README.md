@@ -75,7 +75,7 @@ The CT channel is calibrated against a Gossen Metrawatt clamp meter on real load
 
 - Voltage channel → true active power and power factor
 - Appliance-level load identification (see [NILM portfolio](https://github.com/VolMax-Studio/NILM_Disaggregation_Portfolio))
-- Device-level baseline fingerprinting and long-term degradation tracking (condition monitoring)
+- Device-level baseline fingerprinting: learn each device's normal RMS/THD signature, persist it, and track long-term drift to surface gradual degradation before failure (condition monitoring)
 - TLS on MQTT + per-device credentials
 - Fleet dashboard: OTA rollout status across N devices
 
