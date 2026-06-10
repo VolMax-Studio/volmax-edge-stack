@@ -1,0 +1,60 @@
+{
+  "title": "VolMax Fleet Overview",
+  "uid": "volmax-fleet",
+  "timezone": "browser",
+  "refresh": "5s",
+  "time": {"from": "now-1h", "to": "now"},
+  "panels": [
+    {
+      "title": "Current RMS (A)",
+      "type": "timeseries",
+      "gridPos": {"h": 9, "w": 16, "x": 0, "y": 0},
+      "datasource": "TimescaleDB",
+      "targets": [{
+        "rawSql": "SELECT ts AS time, irms_a, device_id FROM telemetry WHERE $__timeFilter(ts) ORDER BY ts",
+        "format": "time_series"
+      }]
+    },
+    {
+      "title": "Device Status",
+      "type": "table",
+      "gridPos": {"h": 9, "w": 8, "x": 16, "y": 0},
+      "datasource": "TimescaleDB",
+      "targets": [{
+        "rawSql": "SELECT id, name, fw_version, last_seen, (now() - last_seen < interval '30 seconds') AS online FROM devices ORDER BY id",
+        "format": "table"
+      }]
+    },
+    {
+      "title": "THD (%)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 9},
+      "datasource": "TimescaleDB",
+      "targets": [{
+        "rawSql": "SELECT ts AS time, thd_pct, device_id FROM telemetry WHERE source='ct' AND $__timeFilter(ts) ORDER BY ts",
+        "format": "time_series"
+      }]
+    },
+    {
+      "title": "Recent Events",
+      "type": "table",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 9},
+      "datasource": "TimescaleDB",
+      "targets": [{
+        "rawSql": "SELECT ts, device_id, kind, detail, zscore FROM events WHERE $__timeFilter(ts) ORDER BY ts DESC LIMIT 50",
+        "format": "table"
+      }]
+    },
+    {
+      "title": "Estimated Power (W)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 17},
+      "datasource": "TimescaleDB",
+      "targets": [{
+        "rawSql": "SELECT ts AS time, p_est_w, device_id || ' (' || source || ')' AS metric FROM telemetry WHERE $__timeFilter(ts) ORDER BY ts",
+        "format": "time_series"
+      }]
+    }
+  ],
+  "schemaVersion": 39
+}
