@@ -2,7 +2,7 @@
 
 ## Hardware chain
 SCT-013-030 (30 A : 1 V) -> midpoint bias divider (2x 10 kΩ between
-3.3 V and GND, 10 µF across the lower leg) -> ESP32-S3 ADC1 (GPIO4,
+3.3 V and GND, 10 µF across the lower leg) -> ESP32-S3 ADC1 (GPIO5,
 12-bit, 11 dB attenuation).
 
 ## Why bias removal in software
@@ -12,8 +12,8 @@ this cancels divider tolerance and ADC offset drift in one step.
 
 ## Calibration procedure
 1. Resistive load (heater, 2 kW class) on the measured line.
-2. Reference reading with a calibrated power quality analyzer
-   (MAVOWATT 45) clamped on the same conductor.
+2. Reference reading with a calibrated clamp meter
+   (Gossen Metrawatt) clamped on the same conductor.
 3. `calGain = I_ref / I_measured`, written to NVS (`calgain`).
 4. Repeat at low load (~0.5 A) to confirm linearity within ±2 %.
 

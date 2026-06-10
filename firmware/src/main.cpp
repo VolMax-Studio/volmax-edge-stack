@@ -32,7 +32,7 @@ constexpr int   N_SAMPLES     = 400;     // 10 full cycles per window
 constexpr float ADC_VREF      = 3.3f;
 constexpr float ADC_MAX       = 4095.0f;
 constexpr float CT_A_PER_V    = 30.0f;   // SCT-013-030: 30 A -> 1 V
-static float    calGain       = 1.0f;    // trimmed against MAVOWATT 45
+static float    calGain       = 1.0f;    // trimmed against Metrawatt clamp meter
 
 // ---------- config (NVS-backed, remotely updatable) ----------
 static Preferences prefs;

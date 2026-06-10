@@ -65,7 +65,7 @@ curl -X POST localhost:8000/devices/<id>/ota \
 
 ## Calibration & validation
 
-The CT channel is calibrated against a MAVOWATT 45 power quality analyzer on real loads — procedure and results in [docs/calibration.md](docs/calibration.md). Field accuracy is a measurement problem before it is a software problem.
+The CT channel is calibrated against a Gossen Metrawatt clamp meter on real loads — procedure and results in [docs/calibration.md](docs/calibration.md). Field accuracy is a measurement problem before it is a software problem.
 
 ## Design decisions
 
