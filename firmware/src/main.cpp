@@ -26,7 +26,7 @@
 static String deviceId;
 
 // ---------- pins & sampling ----------
-constexpr int   PIN_CT        = 4;       // ADC1 channel
+constexpr int   PIN_CT        = 5;       // ADC1 channel
 constexpr int   SAMPLE_HZ     = 2000;    // 40 samples/cycle @ 50 Hz
 constexpr int   N_SAMPLES     = 400;     // 10 full cycles per window
 constexpr float ADC_VREF      = 3.3f;
@@ -41,11 +41,11 @@ static uint32_t telemetryIntervalS = 5;
 // ---------- networking ----------
 static WiFiClient   net;
 static PubSubClient mqtt(net);
-static const char* WIFI_SSID   = "CHANGE_ME";
-static const char* WIFI_PASS   = "CHANGE_ME";
-static const char* MQTT_HOST   = "192.168.1.10";
+static const char* WIFI_SSID   = "Ivan's Galaxy Tab S8 5G";
+static const char* WIFI_PASS   = "44444444";
+static const char* MQTT_HOST   = "192.168.212.153";
 static const int   MQTT_PORT   = 1883;
-static const char* BACKEND_URL = "http://192.168.1.10:8000";
+static const char* BACKEND_URL = "http://192.168.212.153:8000";
 
 static float sampleBuf[N_SAMPLES];
 
