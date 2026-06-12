@@ -167,15 +167,15 @@ void setup() {
 
   prefs.begin("volmax", false);
   telemetryIntervalS = prefs.getUInt("interval", 5);
-  calGain            = prefs.getFloat("calgain", 1.0f);
-
   // Initialize calibration based on device type (MAC)
-  // Node 3 (SCT-013-000 with 150 Ohm burden) -> 13.33 A/V
-  // Node 1 & 2 (SCT-013-030) -> 30.0 A/V
+  // Node 3 (SCT-013-000 with 150 Ohm burden) -> 13.33 A/V, calibrated gain against Metrawatt -> 1.118
+  // Node 1 & 2 (SCT-013-030) -> 30.0 A/V, default gain -> 1.0
   if (deviceId == "esp32s3-98a316f06bb0") {
     ct_a_per_v = 13.33f;
+    calGain    = prefs.getFloat("calgain", 1.118f);
   } else {
     ct_a_per_v = 30.0f;
+    calGain    = prefs.getFloat("calgain", 1.0f);
   }
   // Allow NVS override if configured
   ct_a_per_v         = prefs.getFloat("ct_a_per_v", ct_a_per_v);
