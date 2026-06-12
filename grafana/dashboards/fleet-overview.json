@@ -56,12 +56,12 @@
       }]
     },
     {
-      "title": "Phase Load Comparison & Imbalance (A)",
+      "title": "Phase & Measured Neutral Currents (A)",
       "type": "timeseries",
       "gridPos": {"h": 8, "w": 24, "x": 0, "y": 25},
       "datasource": "TimescaleDB",
       "targets": [{
-        "rawSql": "SELECT time_bucket('10 seconds', ts) AS time, AVG(CASE WHEN device_id = 'esp32s3-98a316f07e4c' THEN irms_a END) AS \"Household Phase (A)\", AVG(CASE WHEN device_id = 'esp32s3-98a316f06f08' THEN irms_a END) AS \"HVAC Phase (A)\", AVG(CASE WHEN device_id = 'esp32s3-98a316f06bb0' THEN irms_a END) AS \"Measured Neutral Current (A)\", ABS(COALESCE(AVG(CASE WHEN device_id = 'esp32s3-98a316f07e4c' THEN irms_a END), 0) - COALESCE(AVG(CASE WHEN device_id = 'esp32s3-98a316f06f08' THEN irms_a END), 0)) AS \"Calculated Phase Imbalance (A)\" FROM telemetry WHERE $__timeFilter(ts) GROUP BY time ORDER BY time",
+        "rawSql": "SELECT time_bucket('10 seconds', ts) AS time, AVG(CASE WHEN device_id = 'esp32s3-98a316f07e4c' THEN irms_a END) AS \"Household Phase (A)\", AVG(CASE WHEN device_id = 'esp32s3-98a316f06f08' THEN irms_a END) AS \"HVAC Phase (A)\", AVG(CASE WHEN device_id = 'esp32s3-98a316f06bb0' THEN irms_a END) AS \"Measured Neutral Current (A)\" FROM telemetry WHERE $__timeFilter(ts) GROUP BY time ORDER BY time",
         "format": "time_series"
       }]
     }
