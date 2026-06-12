@@ -6,7 +6,7 @@
 
 > Demo video: *(link goes here — real CT clamp, live dashboard, router-kill recovery, live OTA)*
 
-Built by an electrician with 20+ years of field work who got tired of monitoring systems designed by people who never stood in front of a live panel. The device under test is my own house — 24 h of real mains, real loads, real noise.
+Built by an electrician with 30 years of field work who got tired of monitoring systems designed by people who never stood in front of a live panel. The system is deployed at my own house — running as a two-node fleet on separate phases (household and HVAC) with several days of real-world mains load logging.
 
 ## Architecture
 
