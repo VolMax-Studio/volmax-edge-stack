@@ -11,7 +11,7 @@
       "gridPos": {"h": 9, "w": 16, "x": 0, "y": 0},
       "datasource": "TimescaleDB",
       "targets": [{
-        "rawSql": "SELECT t.ts AS time, t.irms_a, d.name AS metric FROM telemetry t JOIN devices d ON t.device_id = d.id WHERE $__timeFilter(t.ts) ORDER BY t.ts",
+        "rawSql": "SELECT time_bucket('10 seconds', t.ts) AS time, AVG(t.irms_a) AS value, d.name AS metric FROM telemetry t JOIN devices d ON t.device_id = d.id WHERE $__timeFilter(t.ts) GROUP BY time, d.name ORDER BY time",
         "format": "time_series"
       }]
     },
@@ -31,7 +31,7 @@
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 9},
       "datasource": "TimescaleDB",
       "targets": [{
-        "rawSql": "SELECT t.ts AS time, t.thd_pct, d.name AS metric FROM telemetry t JOIN devices d ON t.device_id = d.id WHERE t.source='ct' AND $__timeFilter(t.ts) ORDER BY t.ts",
+        "rawSql": "SELECT time_bucket('10 seconds', t.ts) AS time, AVG(t.thd_pct) AS value, d.name AS metric FROM telemetry t JOIN devices d ON t.device_id = d.id WHERE t.source='ct' AND $__timeFilter(t.ts) GROUP BY time, d.name ORDER BY time",
         "format": "time_series"
       }]
     },
@@ -51,7 +51,7 @@
       "gridPos": {"h": 8, "w": 24, "x": 0, "y": 17},
       "datasource": "TimescaleDB",
       "targets": [{
-        "rawSql": "SELECT t.ts AS time, t.p_est_w, d.name || ' (' || t.source || ')' AS metric FROM telemetry t JOIN devices d ON t.device_id = d.id WHERE $__timeFilter(t.ts) ORDER BY t.ts",
+        "rawSql": "SELECT time_bucket('10 seconds', t.ts) AS time, AVG(t.p_est_w) AS value, d.name || ' (' || t.source || ')' AS metric FROM telemetry t JOIN devices d ON t.device_id = d.id WHERE $__timeFilter(t.ts) GROUP BY time, d.name, t.source ORDER BY time",
         "format": "time_series"
       }]
     },
