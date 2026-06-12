@@ -92,7 +92,10 @@ static void publishTelemetry() {
   acquireWindow();
   const float vrms   = dsp::rms(sampleBuf, N_SAMPLES);
   const float irms   = vrms * ct_a_per_v * calGain;
-  const float thd    = dsp::thd_percent(sampleBuf, N_SAMPLES, SAMPLE_HZ, 50.0f);
+  float thd          = dsp::thd_percent(sampleBuf, N_SAMPLES, SAMPLE_HZ, 50.0f);
+  if (irms < 0.5f) {
+    thd = 0.0f; // Mask high-THD noise floor when current is close to zero
+  }
   const float p_est  = irms * 230.0f;          // apparent power estimate (fixed V)
 
   JsonDocument doc;
