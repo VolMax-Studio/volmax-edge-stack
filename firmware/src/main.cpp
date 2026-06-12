@@ -41,11 +41,16 @@ static uint32_t telemetryIntervalS = 5;
 // ---------- networking ----------
 static WiFiClient   net;
 static PubSubClient mqtt(net);
-static const char* WIFI_SSID   = "Ivan's Galaxy Tab S8 5G";
-static const char* WIFI_PASS   = "44444444";
-static const char* MQTT_HOST   = "192.168.212.153";
+
+#if __has_include("local_config.h")
+#include "local_config.h"
+#else
+static const char* WIFI_SSID   = "YOUR_WIFI_SSID";
+static const char* WIFI_PASS   = "YOUR_WIFI_PASSWORD";
+static const char* MQTT_HOST   = "YOUR_MQTT_HOST_IP";
 static const int   MQTT_PORT   = 1883;
-static const char* BACKEND_URL = "http://192.168.212.153:8000";
+static const char* BACKEND_URL = "http://YOUR_MQTT_HOST_IP:8000";
+#endif
 
 static float sampleBuf[N_SAMPLES];
 
