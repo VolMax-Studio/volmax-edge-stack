@@ -31,7 +31,7 @@ constexpr int   SAMPLE_HZ     = 2000;    // 40 samples/cycle @ 50 Hz
 constexpr int   N_SAMPLES     = 400;     // 10 full cycles per window
 constexpr float ADC_VREF      = 3.3f;
 constexpr float ADC_MAX       = 4095.0f;
-constexpr float CT_A_PER_V    = 30.0f;   // SCT-013-030: 30 A -> 1 V
+static float    ct_a_per_v    = 30.0f;   // default fallback
 static float    calGain       = 1.0f;    // trimmed against Metrawatt clamp meter
 
 // ---------- config (NVS-backed, remotely updatable) ----------
@@ -91,7 +91,7 @@ static void acquireWindow() {
 static void publishTelemetry() {
   acquireWindow();
   const float vrms   = dsp::rms(sampleBuf, N_SAMPLES);
-  const float irms   = vrms * CT_A_PER_V * calGain;
+  const float irms   = vrms * ct_a_per_v * calGain;
   const float thd    = dsp::thd_percent(sampleBuf, N_SAMPLES, SAMPLE_HZ, 50.0f);
   const float p_est  = irms * 230.0f;          // apparent power estimate (fixed V)
 
@@ -168,6 +168,17 @@ void setup() {
   prefs.begin("volmax", false);
   telemetryIntervalS = prefs.getUInt("interval", 5);
   calGain            = prefs.getFloat("calgain", 1.0f);
+
+  // Initialize calibration based on device type (MAC)
+  // Node 3 (SCT-013-000 with 150 Ohm burden) -> 13.33 A/V
+  // Node 1 & 2 (SCT-013-030) -> 30.0 A/V
+  if (deviceId == "esp32s3-98a316f06bb0") {
+    ct_a_per_v = 13.33f;
+  } else {
+    ct_a_per_v = 30.0f;
+  }
+  // Allow NVS override if configured
+  ct_a_per_v         = prefs.getFloat("ct_a_per_v", ct_a_per_v);
 
   esp_task_wdt_init(30, true);
   esp_task_wdt_add(NULL);
