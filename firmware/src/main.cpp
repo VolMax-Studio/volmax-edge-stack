@@ -149,7 +149,16 @@ void setup() {
   analogReadResolution(12);
   analogSetPinAttenuation(PIN_CT, ADC_11db);
 
-  deviceId = "esp32s3-" + String((uint32_t)(ESP.getEfuseMac() & 0xFFFFFF), HEX);
+  uint64_t mac = ESP.getEfuseMac();
+  char macStr[32];
+  snprintf(macStr, sizeof(macStr), "esp32s3-%02x%02x%02x%02x%02x%02x",
+           (uint8_t)(mac & 0xFF),
+           (uint8_t)((mac >> 8) & 0xFF),
+           (uint8_t)((mac >> 16) & 0xFF),
+           (uint8_t)((mac >> 24) & 0xFF),
+           (uint8_t)((mac >> 32) & 0xFF),
+           (uint8_t)((mac >> 40) & 0xFF));
+  deviceId = String(macStr);
 
   prefs.begin("volmax", false);
   telemetryIntervalS = prefs.getUInt("interval", 5);

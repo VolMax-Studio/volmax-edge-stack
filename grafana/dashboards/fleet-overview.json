@@ -11,7 +11,7 @@
       "gridPos": {"h": 9, "w": 16, "x": 0, "y": 0},
       "datasource": "TimescaleDB",
       "targets": [{
-        "rawSql": "SELECT ts AS time, irms_a, device_id FROM telemetry WHERE $__timeFilter(ts) ORDER BY ts",
+        "rawSql": "SELECT t.ts AS time, t.irms_a, d.name AS metric FROM telemetry t JOIN devices d ON t.device_id = d.id WHERE $__timeFilter(t.ts) ORDER BY t.ts",
         "format": "time_series"
       }]
     },
@@ -31,7 +31,7 @@
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 9},
       "datasource": "TimescaleDB",
       "targets": [{
-        "rawSql": "SELECT ts AS time, thd_pct, device_id FROM telemetry WHERE source='ct' AND $__timeFilter(ts) ORDER BY ts",
+        "rawSql": "SELECT t.ts AS time, t.thd_pct, d.name AS metric FROM telemetry t JOIN devices d ON t.device_id = d.id WHERE t.source='ct' AND $__timeFilter(t.ts) ORDER BY t.ts",
         "format": "time_series"
       }]
     },
@@ -51,7 +51,7 @@
       "gridPos": {"h": 8, "w": 24, "x": 0, "y": 17},
       "datasource": "TimescaleDB",
       "targets": [{
-        "rawSql": "SELECT ts AS time, p_est_w, device_id || ' (' || source || ')' AS metric FROM telemetry WHERE $__timeFilter(ts) ORDER BY ts",
+        "rawSql": "SELECT t.ts AS time, t.p_est_w, d.name || ' (' || t.source || ')' AS metric FROM telemetry t JOIN devices d ON t.device_id = d.id WHERE $__timeFilter(t.ts) ORDER BY t.ts",
         "format": "time_series"
       }]
     }
