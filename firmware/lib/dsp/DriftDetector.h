@@ -46,19 +46,19 @@ public:
     }
 
     bool isReady() const {
-        return isLocked || (n >= min_samples);
+        return isLocked && (n >= min_samples);
     }
 
     /**
      * Obrađuje novi uzorak feature-a (npr. THD% ili Crest Factor).
      * x: ulazna vrednost.
      * update_baseline: true ako smo u LEARN fazi pa ažuriramo statistiku.
-     * Vraća: Trenutni izračunati Z-score (0.0 ako još nema dovoljno uzoraka).
+     * Vraća: Trenutni izračunati Z-score, ili -1.0 ako je korpa neokarakterisana / nezrela.
      */
     double processValue(double x, bool update_baseline) {
         // Sanitizacija ulaza: ignoriši NaN, Inf i apsurdne vrednosti (van opsega 0..1000%)
         if (isnan(x) || isinf(x) || x < 0.0 || x > 1000.0) {
-            return 0.0;
+            return -1.0;
         }
 
         if (update_baseline && !isLocked) {
@@ -74,12 +74,15 @@ public:
             }
         } 
         
-        // Z-score kalkulacija
-        if (std_dev > 0.0001) {
-            return fabs(x - mean) / std_dev;
+        // Z-score kalkulacija: dozvoljena samo ako je baseline zaključan (odnosno spreman i zreo)
+        if (isLocked) {
+            if (std_dev > 0.0001) {
+                return fabs(x - mean) / std_dev;
+            }
+            return 0.0;
         }
 
-        return 0.0;
+        return -1.0; // Vraća -1.0 kao indikator neokarakterisanog režima rada
     }
 
     double getMean() const { return mean; }
@@ -119,26 +122,20 @@ public:
 /**
  * BinnedDriftDetector — eliminiše zavisnost THD-a od opterećenja (load-dependency).
  * Deli radne režime struje (RMS) u 5 diskretnih opsega (bins) i za svaki vodi
- * nezavisnu DriftDetector instancu. Sprečava lažne alarme pri startovanju motora
- * i promenama režima.
+ * nezavisnu DriftDetector instancu sa per-bin readiness gate-om.
  */
 class BinnedDriftDetector {
 private:
     static constexpr int NUM_BINS = 5;
     DriftDetector bins[NUM_BINS];
-    double bin_edges[NUM_BINS - 1]; // Granice strujnih opsega
+    double bin_edges[NUM_BINS - 1]; // Granice strujnih opsega (RMS)
     double z_threshold;
 
 public:
     BinnedDriftDetector(double threshold = 3.0, uint32_t min_samples = 50) {
         z_threshold = threshold;
         
-        // Definišemo granice opsega struje (RMS Amps):
-        // Bin 0: < 1.0 A (Idle / Unloaded — ne pratimo anomalije da izbegnemo noise floor)
-        // Bin 1: 1.0 A - 5.0 A (Low Load)
-        // Bin 2: 5.0 A - 10.0 A (Medium Load)
-        // Bin 3: 10.0 A - 20.0 A (High Load)
-        // Bin 4: >= 20.0 A (Overload / Full Load)
+        // Podrazumevane granice opsega struje (RMS Amps):
         bin_edges[0] = 1.0;
         bin_edges[1] = 5.0;
         bin_edges[2] = 10.0;
@@ -161,17 +158,17 @@ public:
     /**
      * Vodi proces detekcije u odnosu na radnu tačku (irms).
      * irms: RMS struja u amperima (trenutna radna tačka).
-     * thd: izmereni THD% (ili Crest Factor).
+     * thd: izmereni THD%.
      * update_baseline: true ako sistem uči normalno stanje.
-     * Vraća: Z-score za aktivni opseg opterećenja.
+     * Vraća: Z-score za aktivni opseg opterećenja, ili -1.0 ako je nezreo.
      */
     double process(double irms, double thd, bool update_baseline) {
         int bin_idx = getBinIndex(irms);
         
-        // Ako je struja u Bin 0 (< 1.0 A), uređaj je ugašen ili radi u praznom hodu.
-        // Preskačemo anomalije kako bismo izbegli šum u praznom hodu.
-        if (bin_idx == 0) {
-            return 0.0;
+        // Ako je struja u Bin 0 (< bin_edges[0]), uređaj je ugašen ili u praznom hodu.
+        // Preskačemo detekciju kako bismo izbegli šum u praznom hodu.
+        if (irms < bin_edges[0]) {
+            return -1.0;
         }
 
         return bins[bin_idx].processValue(thd, update_baseline);
@@ -189,15 +186,38 @@ public:
         }
     }
 
+    void setBinEdges(const double new_edges[NUM_BINS - 1]) {
+        bool changed = false;
+        for (int i = 0; i < NUM_BINS - 1; i++) {
+            if (bin_edges[i] != new_edges[i]) {
+                bin_edges[i] = new_edges[i];
+                changed = true;
+            }
+        }
+        if (changed) {
+            resetAll(); // Resetujemo baselines da izbegnemo curenje istorije iz drugih radnih tačaka
+        }
+    }
+
+    void getBinEdges(double out_edges[NUM_BINS - 1]) const {
+        for (int i = 0; i < NUM_BINS - 1; i++) {
+            out_edges[i] = bin_edges[i];
+        }
+    }
+
     void save(Preferences& prefs) {
         for (int i = 0; i < NUM_BINS; i++) {
             bins[i].save(prefs, "drift", i);
         }
+        prefs.putBytes("bin_edges", bin_edges, sizeof(bin_edges));
     }
 
     void load(Preferences& prefs) {
         for (int i = 0; i < NUM_BINS; i++) {
             bins[i].load(prefs, "drift", i);
+        }
+        if (prefs.isKey("bin_edges")) {
+            prefs.getBytes("bin_edges", bin_edges, sizeof(bin_edges));
         }
     }
 

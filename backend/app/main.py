@@ -37,6 +37,7 @@ def _device_out(d: Device) -> DeviceOut:
                      last_seen=d.last_seen, telemetry_interval_s=d.telemetry_interval_s,
                      rms_alarm_threshold_a=d.rms_alarm_threshold_a,
                      pending_ota_url=d.pending_ota_url, learning_mode=d.learning_mode,
+                     bin_edges=d.bin_edges,
                      online=online)
 
 
@@ -71,7 +72,8 @@ def get_telemetry(device_id: str, limit: int = 100, db: Session = Depends(get_db
     rows = db.scalars(select(Telemetry).where(Telemetry.device_id == device_id)
                       .order_by(Telemetry.ts.desc()).limit(min(limit, 1000))).all()
     return [{"ts": r.ts, "irms_a": r.irms_a, "thd_pct": r.thd_pct,
-             "p_est_w": r.p_est_w, "source": r.source} for r in rows]
+             "p_est_w": r.p_est_w, "z_score": r.z_score, "irms_z": r.irms_z,
+             "learn_status": r.learn_status, "source": r.source} for r in rows]
 
 
 @app.get("/devices/{device_id}/events")

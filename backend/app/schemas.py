@@ -9,7 +9,8 @@ class TelemetryIn(BaseModel):
     irms_a: float = Field(ge=0, le=1000)
     thd_pct: float = Field(default=0.0, ge=0, le=1000)
     p_est_w: float = Field(default=0.0, ge=0)
-    z_score: float = Field(default=0.0)
+    z_score: float | None = Field(default=None)
+    irms_z: float | None = Field(default=None)
     learn_status: str = Field(default="learning", max_length=16)
     fw_version: str = "unknown"
     source: str = Field(default="ct", pattern="^(ct|modbus)$")
@@ -24,6 +25,7 @@ class DeviceOut(BaseModel):
     rms_alarm_threshold_a: float
     pending_ota_url: str
     learning_mode: bool
+    bin_edges: str
     online: bool
 
 
@@ -31,6 +33,7 @@ class ConfigUpdate(BaseModel):
     telemetry_interval_s: int | None = Field(default=None, ge=1, le=3600)
     rms_alarm_threshold_a: float | None = Field(default=None, gt=0, le=1000)
     learning_mode: bool | None = Field(default=None)
+    bin_edges: str | None = Field(default=None, max_length=64)
     name: str | None = Field(default=None, max_length=128)
 
 

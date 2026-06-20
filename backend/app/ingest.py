@@ -35,7 +35,8 @@ def process_telemetry(db: Session, data: TelemetryIn) -> list[Event]:
 
     db.add(Telemetry(device_id=data.device_id, irms_a=data.irms_a,
                      thd_pct=data.thd_pct, p_est_w=data.p_est_w,
-                     z_score=data.z_score, learn_status=data.learn_status,
+                     z_score=data.z_score, irms_z=data.irms_z,
+                     learn_status=data.learn_status,
                      source=data.source))
 
     events: list[Event] = []

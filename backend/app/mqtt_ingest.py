@@ -29,10 +29,15 @@ def _on_message(client, userdata, msg):
         if topic_type == "alerts":
             from .db import Event
             z = payload.get("z_score", 0.0)
+            alert_type = payload.get("alert_type", "thd_drift")
+            if alert_type == "irms_drift":
+                detail = f"Edge detected RMS current drift! load={payload.get('irms_a')}A"
+            else:
+                detail = f"Edge detected THD drift! THD={payload.get('thd_pct')}% at load={payload.get('irms_a')}A"
             event = Event(
                 device_id=device_id,
                 kind="anomaly",
-                detail=f"Edge detected THD drift! THD={payload.get('thd_pct')}% at load={payload.get('irms_a')}A",
+                detail=detail,
                 zscore=float(z)
             )
             db.add(event)

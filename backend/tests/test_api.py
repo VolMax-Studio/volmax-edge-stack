@@ -84,3 +84,30 @@ def test_multiple_devices_isolated(client):
     ingest(client, device="b", irms=2.0)
     assert len(client.get("/devices").json()) == 2
     assert len(client.get("/devices/a/telemetry").json()) == 1
+
+
+def test_device_config_bin_edges(client):
+    ingest(client, device="esp32-02")
+    d = client.get("/devices/esp32-02").json()
+    assert d["bin_edges"] == "1.0,5.0,10.0,20.0"
+    
+    r = client.patch("/devices/esp32-02/config", json={"bin_edges": "1.0,3.0,7.0,12.0"})
+    assert r.status_code == 200
+    assert r.json()["bin_edges"] == "1.0,3.0,7.0,12.0"
+
+
+def test_ingest_with_zscore_and_irmsz(client):
+    r = client.post("/ingest", json={
+        "device_id": "esp32-03",
+        "irms_a": 4.5,
+        "thd_pct": 2.1,
+        "z_score": 1.25,
+        "irms_z": 0.84,
+        "learn_status": "monitoring"
+    })
+    assert r.status_code == 201
+    telemetry = client.get("/devices/esp32-03/telemetry").json()
+    assert len(telemetry) == 1
+    assert telemetry[0]["z_score"] == 1.25
+    assert telemetry[0]["irms_z"] == 0.84
+    assert telemetry[0]["learn_status"] == "monitoring"

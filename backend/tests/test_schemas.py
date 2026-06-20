@@ -28,3 +28,8 @@ def test_config_bounds():
     with pytest.raises(ValidationError):
         ConfigUpdate(telemetry_interval_s=0)
     assert ConfigUpdate(telemetry_interval_s=10).telemetry_interval_s == 10
+
+
+def test_config_update_bin_edges():
+    cfg = ConfigUpdate(bin_edges="1.0,3.0,7.0,12.0")
+    assert cfg.bin_edges == "1.0,3.0,7.0,12.0"

@@ -40,6 +40,7 @@ static Preferences prefs;
 static uint32_t telemetryIntervalS = 5;
 static bool learningMode = true;
 static BinnedDriftDetector detector(3.0, 50);
+static DriftDetector irmsDetector(3.0, 100);
 
 // ---------- networking ----------
 static WiFiClient   net;
@@ -103,15 +104,31 @@ static void publishTelemetry() {
 
   // Unsupervised drift/anomaly detection on the load-binned THD%
   double z_score = detector.process(irms, thd, learningMode);
-  bool is_anomaly = (z_score > detector.getZThreshold()) && !learningMode;
+  bool is_anomaly = (z_score > detector.getZThreshold()) && !learningMode && (z_score >= 0.0);
+
+  // Global long-term RMS current drift detection
+  double irms_z = irmsDetector.processValue(irms, learningMode);
+  bool is_irms_anomaly = (irms_z > 3.0) && !learningMode && (irms_z >= 0.0);
 
   JsonDocument doc;
   doc["device_id"]    = deviceId;
   doc["irms_a"]       = serialized(String(irms, 3));
   doc["thd_pct"]      = serialized(String(thd, 1));
   doc["p_est_w"]      = serialized(String(p_est, 0));
-  doc["z_score"]      = serialized(String(z_score, 2));
-  doc["learn_status"] = learningMode ? "learning" : "monitoring";
+  
+  if (z_score >= 0.0) {
+    doc["z_score"] = serialized(String(z_score, 2));
+  } else {
+    doc["z_score"] = "null";
+  }
+
+  if (irms_z >= 0.0) {
+    doc["irms_z"] = serialized(String(irms_z, 2));
+  } else {
+    doc["irms_z"] = "null";
+  }
+
+  doc["learn_status"] = learningMode ? "learning" : (((z_score >= 0.0) || (irms_z >= 0.0)) ? "monitoring" : "uncharacterized");
   doc["fw_version"]   = FW_VERSION;
   doc["source"]       = "ct";
 
@@ -120,13 +137,18 @@ static void publishTelemetry() {
   String topic = "volmax/" + deviceId + "/telemetry";
   mqtt.publish(topic.c_str(), payload, false);
 
-  if (is_anomaly) {
+  if (is_anomaly || is_irms_anomaly) {
     JsonDocument alertDoc;
     alertDoc["device_id"]  = deviceId;
     alertDoc["irms_a"]     = serialized(String(irms, 3));
     alertDoc["thd_pct"]    = serialized(String(thd, 1));
-    alertDoc["z_score"]    = serialized(String(z_score, 2));
-    alertDoc["alert_type"] = "thd_drift";
+    if (is_anomaly) {
+      alertDoc["z_score"]    = serialized(String(z_score, 2));
+      alertDoc["alert_type"] = "thd_drift";
+    } else {
+      alertDoc["z_score"]    = serialized(String(irms_z, 2));
+      alertDoc["alert_type"] = "irms_drift";
+    }
     
     char alertPayload[256];
     serializeJson(alertDoc, alertPayload);
@@ -155,6 +177,18 @@ static void pollFleetControl() {
         performOta(String(ota));
         return;
       }
+      // Parse bin edges if sent by the backend
+      const char* edges_str = doc["bin_edges"] | "";
+      if (strlen(edges_str) > 0) {
+        double new_edges[4];
+        int parsed = sscanf(edges_str, "%lf,%lf,%lf,%lf", &new_edges[0], &new_edges[1], &new_edges[2], &new_edges[3]);
+        if (parsed == 4) {
+          detector.setBinEdges(new_edges);
+          detector.save(prefs);
+          Serial.print("Applied new bin edges: ");
+          Serial.println(edges_str);
+        }
+      }
       // Remote configuration of baseline learning state (pull model)
       bool learn = doc["learning_mode"] | true;
       if (learn != learningMode) {
@@ -162,11 +196,15 @@ static void pollFleetControl() {
         prefs.putBool("learn_mode", learn);
         if (!learn) {
           detector.lockAll();
+          irmsDetector.lockBaseline();
           detector.save(prefs); // Safe write to flash: only triggered on manual state transition
+          irmsDetector.save(prefs, "irms", 0);
           Serial.println("Baseline locked and saved to NVS.");
         } else {
           detector.resetAll();
+          irmsDetector.reset();
           detector.save(prefs); // Safe write to flash: clears baseline metrics
+          irmsDetector.save(prefs, "irms", 0);
           Serial.println("Baseline reset, learning started.");
         }
       }
@@ -210,6 +248,7 @@ void setup() {
   telemetryIntervalS = prefs.getUInt("interval", 5);
   learningMode = prefs.getBool("learn_mode", true);
   detector.load(prefs); // Restore drift detector baselines from NVS
+  irmsDetector.load(prefs, "irms", 0);
   // Initialize calibration based on device type (MAC)
   // Node 3 (SCT-013-000 with 150 Ohm burden) -> 13.33 A/V, calibrated gain against Metrawatt -> 1.118
   // Node 1 & 2 (SCT-013-030) -> 30.0 A/V, default gain -> 1.0
