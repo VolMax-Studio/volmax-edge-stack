@@ -33,6 +33,7 @@ class Device(Base):
     telemetry_interval_s: Mapped[int] = mapped_column(Integer, default=5)
     rms_alarm_threshold_a: Mapped[float] = mapped_column(Float, default=16.0)
     pending_ota_url: Mapped[str] = mapped_column(String(256), default="")
+    learning_mode: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
 class Telemetry(Base):
@@ -43,6 +44,8 @@ class Telemetry(Base):
     irms_a: Mapped[float] = mapped_column(Float)
     thd_pct: Mapped[float] = mapped_column(Float, default=0.0)
     p_est_w: Mapped[float] = mapped_column(Float, default=0.0)
+    z_score: Mapped[float] = mapped_column(Float, default=0.0)
+    learn_status: Mapped[str] = mapped_column(String(16), default="learning")
     source: Mapped[str] = mapped_column(String(16), default="ct")  # ct | modbus
 
 

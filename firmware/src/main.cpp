@@ -20,9 +20,10 @@
 #include <Preferences.h>
 #include <esp_task_wdt.h>
 #include "dsp.h"
+#include "DriftDetector.h"
 
 // ---------- build/identity ----------
-#define FW_VERSION "1.0.0"
+#define FW_VERSION "1.0.5"
 static String deviceId;
 
 // ---------- pins & sampling ----------
@@ -37,6 +38,8 @@ static float    calGain       = 1.0f;    // trimmed against Metrawatt clamp mete
 // ---------- config (NVS-backed, remotely updatable) ----------
 static Preferences prefs;
 static uint32_t telemetryIntervalS = 5;
+static bool learningMode = true;
+static BinnedDriftDetector detector(3.0, 50);
 
 // ---------- networking ----------
 static WiFiClient   net;
@@ -98,18 +101,38 @@ static void publishTelemetry() {
   }
   const float p_est  = irms * 230.0f;          // apparent power estimate (fixed V)
 
+  // Unsupervised drift/anomaly detection on the load-binned THD%
+  double z_score = detector.process(irms, thd, learningMode);
+  bool is_anomaly = (z_score > detector.getZThreshold()) && !learningMode;
+
   JsonDocument doc;
-  doc["device_id"]  = deviceId;
-  doc["irms_a"]     = serialized(String(irms, 3));
-  doc["thd_pct"]    = serialized(String(thd, 1));
-  doc["p_est_w"]    = serialized(String(p_est, 0));
-  doc["fw_version"] = FW_VERSION;
-  doc["source"]     = "ct";
+  doc["device_id"]    = deviceId;
+  doc["irms_a"]       = serialized(String(irms, 3));
+  doc["thd_pct"]      = serialized(String(thd, 1));
+  doc["p_est_w"]      = serialized(String(p_est, 0));
+  doc["z_score"]      = serialized(String(z_score, 2));
+  doc["learn_status"] = learningMode ? "learning" : "monitoring";
+  doc["fw_version"]   = FW_VERSION;
+  doc["source"]       = "ct";
 
   char payload[256];
   serializeJson(doc, payload);
   String topic = "volmax/" + deviceId + "/telemetry";
   mqtt.publish(topic.c_str(), payload, false);
+
+  if (is_anomaly) {
+    JsonDocument alertDoc;
+    alertDoc["device_id"]  = deviceId;
+    alertDoc["irms_a"]     = serialized(String(irms, 3));
+    alertDoc["thd_pct"]    = serialized(String(thd, 1));
+    alertDoc["z_score"]    = serialized(String(z_score, 2));
+    alertDoc["alert_type"] = "thd_drift";
+    
+    char alertPayload[256];
+    serializeJson(alertDoc, alertPayload);
+    String alertTopic = "volmax/" + deviceId + "/alerts";
+    mqtt.publish(alertTopic.c_str(), alertPayload, false);
+  }
 }
 
 /** Poll backend for remote config + pending OTA. Pull model. */
@@ -131,6 +154,21 @@ static void pollFleetControl() {
         http.end();
         performOta(String(ota));
         return;
+      }
+      // Remote configuration of baseline learning state (pull model)
+      bool learn = doc["learning_mode"] | true;
+      if (learn != learningMode) {
+        learningMode = learn;
+        prefs.putBool("learn_mode", learn);
+        if (!learn) {
+          detector.lockAll();
+          detector.save(prefs); // Safe write to flash: only triggered on manual state transition
+          Serial.println("Baseline locked and saved to NVS.");
+        } else {
+          detector.resetAll();
+          detector.save(prefs); // Safe write to flash: clears baseline metrics
+          Serial.println("Baseline reset, learning started.");
+        }
       }
     }
   }
@@ -170,6 +208,8 @@ void setup() {
 
   prefs.begin("volmax", false);
   telemetryIntervalS = prefs.getUInt("interval", 5);
+  learningMode = prefs.getBool("learn_mode", true);
+  detector.load(prefs); // Restore drift detector baselines from NVS
   // Initialize calibration based on device type (MAC)
   // Node 3 (SCT-013-000 with 150 Ohm burden) -> 13.33 A/V, calibrated gain against Metrawatt -> 1.118
   // Node 1 & 2 (SCT-013-030) -> 30.0 A/V, default gain -> 1.0

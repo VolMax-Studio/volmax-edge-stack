@@ -36,7 +36,8 @@ def _device_out(d: Device) -> DeviceOut:
     return DeviceOut(id=d.id, name=d.name, fw_version=d.fw_version,
                      last_seen=d.last_seen, telemetry_interval_s=d.telemetry_interval_s,
                      rms_alarm_threshold_a=d.rms_alarm_threshold_a,
-                     pending_ota_url=d.pending_ota_url, online=online)
+                     pending_ota_url=d.pending_ota_url, learning_mode=d.learning_mode,
+                     online=online)
 
 
 @app.get("/health")

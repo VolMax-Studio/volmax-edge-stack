@@ -20,19 +20,33 @@ log = logging.getLogger("mqtt_ingest")
 
 
 def _on_message(client, userdata, msg):
+    db = SessionLocal()
     try:
         payload = json.loads(msg.payload.decode())
         device_id = msg.topic.split("/")[1]
+        topic_type = msg.topic.split("/")[2]
+        
+        if topic_type == "alerts":
+            from .db import Event
+            z = payload.get("z_score", 0.0)
+            event = Event(
+                device_id=device_id,
+                kind="anomaly",
+                detail=f"Edge detected THD drift! THD={payload.get('thd_pct')}% at load={payload.get('irms_a')}A",
+                zscore=float(z)
+            )
+            db.add(event)
+            db.commit()
+            log.info("EVENT anomaly %s: %s", device_id, event.detail)
+            return
+
         payload.setdefault("device_id", device_id)
         data = TelemetryIn(**payload)
-    except (ValueError, ValidationError, IndexError) as exc:
-        log.warning("rejected payload on %s: %s", msg.topic, exc)
-        return
-    db = SessionLocal()
-    try:
         events = process_telemetry(db, data)
         for e in events:
             log.info("EVENT %s %s: %s", e.kind, e.device_id, e.detail)
+    except (ValueError, ValidationError, IndexError, json.JSONDecodeError) as exc:
+        log.warning("rejected payload on %s: %s", msg.topic, exc)
     finally:
         db.close()
 
@@ -41,8 +55,9 @@ def start_mqtt_thread() -> threading.Thread:
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     client.on_message = _on_message
     client.connect(MQTT_HOST, MQTT_PORT, keepalive=30)
-    client.subscribe(MQTT_TOPIC, qos=1)
+    client.subscribe("volmax/+/telemetry", qos=1)
+    client.subscribe("volmax/+/alerts", qos=1)
     t = threading.Thread(target=client.loop_forever, daemon=True)
     t.start()
-    log.info("MQTT subscribed to %s @ %s:%s", MQTT_TOPIC, MQTT_HOST, MQTT_PORT)
+    log.info("MQTT subscribed to telemetry and alerts @ %s:%s", MQTT_HOST, MQTT_PORT)
     return t

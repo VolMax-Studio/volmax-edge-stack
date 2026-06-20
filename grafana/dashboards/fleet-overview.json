@@ -13,7 +13,61 @@
       "targets": [{
         "rawSql": "SELECT time_bucket('10 seconds', t.ts) AS time, AVG(t.irms_a) AS value, d.name AS metric FROM telemetry t JOIN devices d ON t.device_id = d.id WHERE $__timeFilter(t.ts) GROUP BY time, d.name ORDER BY time",
         "format": "time_series"
-      }]
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "phase_L1"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "phase_L2"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "phase_L3"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      }
     },
     {
       "title": "Device Status",
@@ -33,7 +87,61 @@
       "targets": [{
         "rawSql": "SELECT time_bucket('10 seconds', t.ts) AS time, AVG(t.thd_pct) AS value, d.name AS metric FROM telemetry t JOIN devices d ON t.device_id = d.id WHERE t.source='ct' AND $__timeFilter(t.ts) GROUP BY time, d.name ORDER BY time",
         "format": "time_series"
-      }]
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "phase_L1"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "phase_L2"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "phase_L3"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      }
     },
     {
       "title": "Recent Events",
@@ -46,24 +154,154 @@
       }]
     },
     {
-      "title": "Estimated Power (W)",
+      "title": "Estimated Apparent Power (VA)",
       "type": "timeseries",
       "gridPos": {"h": 8, "w": 24, "x": 0, "y": 17},
       "datasource": "TimescaleDB",
       "targets": [{
-        "rawSql": "SELECT time_bucket('10 seconds', t.ts) AS time, AVG(t.p_est_w) AS value, d.name || ' (' || t.source || ')' AS metric FROM telemetry t JOIN devices d ON t.device_id = d.id WHERE $__timeFilter(t.ts) GROUP BY time, d.name, t.source ORDER BY time",
+        "rawSql": "SELECT time_bucket('10 seconds', t.ts) AS time, AVG(t.p_est_w) AS value, d.name AS metric FROM telemetry t JOIN devices d ON t.device_id = d.id WHERE $__timeFilter(t.ts) GROUP BY time, d.name ORDER BY time",
         "format": "time_series"
-      }]
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "phase_L1"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "phase_L2"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "phase_L3"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      }
     },
     {
-      "title": "Phase & Measured Neutral Currents (A)",
-      "type": "timeseries",
+      "title": "Live Phase Currents (A)",
+      "type": "stat",
       "gridPos": {"h": 8, "w": 24, "x": 0, "y": 25},
       "datasource": "TimescaleDB",
       "targets": [{
-        "rawSql": "SELECT time_bucket('10 seconds', ts) AS time, AVG(CASE WHEN device_id = 'esp32s3-98a316f06f08' THEN irms_a END) AS \"Household Phase (A)\", AVG(CASE WHEN device_id = 'esp32s3-98a316f07e4c' THEN irms_a END) AS \"HVAC Phase (A)\", AVG(CASE WHEN device_id = 'esp32s3-98a316f06bb0' THEN irms_a END) AS \"Neutral / Imbalance Current (measured)\" FROM telemetry WHERE $__timeFilter(ts) GROUP BY time ORDER BY time",
+        "rawSql": "SELECT time_bucket('10 seconds', t.ts) AS time, AVG(t.irms_a) AS value, d.name AS metric FROM telemetry t JOIN devices d ON t.device_id = d.id WHERE t.device_id IN ('esp32s3-98a316f06f08', 'esp32s3-98a316f07e4c', 'esp32s3-98a316f06bb0') AND $__timeFilter(t.ts) GROUP BY time, d.name ORDER BY time",
         "format": "time_series"
-      }]
+      }],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "value_and_name",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "amp",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 10},
+              {"color": "red", "value": 16}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Total Estimated Power (kVA) vs Threshold",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 33},
+      "datasource": "TimescaleDB",
+      "targets": [{
+        "rawSql": "WITH phase_power AS (\n  SELECT\n    time_bucket('10 seconds', t.ts) AS time,\n    t.device_id,\n    AVG(t.p_est_w) AS avg_power_w\n  FROM telemetry t\n  WHERE t.device_id IN ('esp32s3-98a316f06f08', 'esp32s3-98a316f07e4c', 'esp32s3-98a316f06bb0')\n    AND $__timeFilter(t.ts)\n  GROUP BY time, t.device_id\n),\ntotal_power AS (\n  SELECT\n    time,\n    SUM(avg_power_w) / 1000.0 AS value\n  FROM phase_power\n  GROUP BY time\n)\nSELECT\n  time,\n  value AS \"Total Estimated Power (kVA)\",\n  1.5 AS \"Threshold (kVA)\"\nFROM total_power\nORDER BY time",
+        "format": "time_series"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Total Estimated Power (kVA)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Threshold (kVA)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      }
     }
   ],
   "schemaVersion": 39
