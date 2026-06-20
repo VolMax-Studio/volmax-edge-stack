@@ -40,13 +40,6 @@ def process_telemetry(db: Session, data: TelemetryIn) -> list[Event]:
                      source=data.source))
 
     events: list[Event] = []
-    res = get_detector(data.device_id).update(data.irms_a)
-    if res.is_anomaly:
-        z = max(min(res.zscore, 999.0), -999.0)  # clamp inf for JSON/DB
-        events.append(Event(device_id=data.device_id, kind="anomaly",
-                            detail=f"Irms {data.irms_a:.2f} A deviates from "
-                                   f"rolling mean {res.mean:.2f} A",
-                            zscore=round(z, 2)))
     if data.irms_a > device.rms_alarm_threshold_a:
         events.append(Event(device_id=data.device_id, kind="threshold",
                             detail=f"Irms {data.irms_a:.2f} A > limit "

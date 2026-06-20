@@ -119,13 +119,13 @@ static void publishTelemetry() {
   if (z_score >= 0.0) {
     doc["z_score"] = serialized(String(z_score, 2));
   } else {
-    doc["z_score"] = "null";
+    doc["z_score"] = nullptr;
   }
 
   if (irms_z >= 0.0) {
     doc["irms_z"] = serialized(String(irms_z, 2));
   } else {
-    doc["irms_z"] = "null";
+    doc["irms_z"] = nullptr;
   }
 
   doc["learn_status"] = learningMode ? "learning" : (((z_score >= 0.0) || (irms_z >= 0.0)) ? "monitoring" : "uncharacterized");

@@ -71,12 +71,22 @@ def test_ota_queue_and_ack(client):
     assert kinds.count("ota") == 2
 
 
-def test_anomaly_event_via_api(client):
-    for _ in range(30):
-        ingest(client, device="d2", irms=2.0)
-    ingest(client, device="d2", irms=14.0)
+def test_anomaly_event_via_mqtt_alert(client):
+    from app.mqtt_ingest import _on_message
+    
+    ingest(client, device="d2", irms=2.0)
+    
+    class MockMsg:
+        topic = "volmax/d2/alerts"
+        payload = b'{"z_score": 4.5, "alert_type": "thd_drift", "thd_pct": 12.5, "irms_a": 3.2}'
+    
+    _on_message(None, None, MockMsg())
+    
     events = client.get("/devices/d2/events").json()
-    assert any(e["kind"] == "anomaly" for e in events)
+    assert len(events) == 1
+    assert events[0]["kind"] == "anomaly"
+    assert "THD drift" in events[0]["detail"]
+    assert events[0]["zscore"] == 4.5
 
 
 def test_multiple_devices_isolated(client):
