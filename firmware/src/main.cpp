@@ -39,8 +39,8 @@ static float    calGain       = 1.0f;    // trimmed against Metrawatt clamp mete
 static Preferences prefs;
 static uint32_t telemetryIntervalS = 5;
 static bool learningMode = true;
-static BinnedDriftDetector detector(3.0, 50);
-static DriftDetector irmsDetector(3.0, 100);
+static BinnedDriftDetector detector(3.0, 200);
+static DriftDetector irmsDetector(3.0, 500);
 
 // ---------- networking ----------
 static WiFiClient   net;
