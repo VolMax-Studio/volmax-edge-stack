@@ -108,7 +108,7 @@ static void publishTelemetry() {
 
   // Global long-term RMS current drift detection
   double irms_z = irmsDetector.processValue(irms, learningMode);
-  bool is_irms_anomaly = (irms_z > 3.0) && !learningMode && (irms_z >= 0.0);
+  bool is_irms_anomaly = false; // Disabled to prevent false alarms on transient load changes; irms_z is still calculated & published
 
   JsonDocument doc;
   doc["device_id"]    = deviceId;
