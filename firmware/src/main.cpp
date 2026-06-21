@@ -41,6 +41,8 @@ static uint32_t telemetryIntervalS = 5;
 static bool learningMode = true;
 static BinnedDriftDetector detector(3.0, 200);
 static DriftDetector irmsDetector(3.0, 500);
+static bool thdAnomalyActive = false;
+static bool irmsAnomalyActive = false;
 
 // ---------- networking ----------
 static WiFiClient   net;
@@ -137,12 +139,33 @@ static void publishTelemetry() {
   String topic = "volmax/" + deviceId + "/telemetry";
   mqtt.publish(topic.c_str(), payload, false);
 
-  if (is_anomaly || is_irms_anomaly) {
+  // Update states and trigger alerts on rising edges (transition from false to true)
+  bool trigger_thd_alert = false;
+  if (is_anomaly) {
+    if (!thdAnomalyActive) {
+      thdAnomalyActive = true;
+      trigger_thd_alert = true;
+    }
+  } else {
+    thdAnomalyActive = false;
+  }
+
+  bool trigger_irms_alert = false;
+  if (is_irms_anomaly) {
+    if (!irmsAnomalyActive) {
+      irmsAnomalyActive = true;
+      trigger_irms_alert = true;
+    }
+  } else {
+    irmsAnomalyActive = false;
+  }
+
+  if (trigger_thd_alert || trigger_irms_alert) {
     JsonDocument alertDoc;
     alertDoc["device_id"]  = deviceId;
     alertDoc["irms_a"]     = serialized(String(irms, 3));
     alertDoc["thd_pct"]    = serialized(String(thd, 1));
-    if (is_anomaly) {
+    if (trigger_thd_alert) {
       alertDoc["z_score"]    = serialized(String(z_score, 2));
       alertDoc["alert_type"] = "thd_drift";
     } else {

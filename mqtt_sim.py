@@ -76,6 +76,8 @@ thd_detector = BinnedDriftDetector(threshold=3.0, min_samples=10)
 irms_detector = DriftDetector(threshold=3.0, min_samples=15)
 learning_mode = True
 anomaly_type = "none"  # none | thd | irms
+thd_anomaly_active = False
+irms_anomaly_active = False
 
 def poll_device_config():
     global learning_mode
@@ -108,7 +110,10 @@ def listen_keyboard():
     
     while True:
         try:
-            line = sys.stdin.readline().strip().lower()
+            line = sys.stdin.readline()
+            if not line:
+                break
+            line = line.strip().lower()
             if line == 't':
                 anomaly_type = "thd"
                 print("\n[KOMANDA] Injektujem THD kvar (THD skače na 18%)...")
@@ -182,17 +187,33 @@ def main():
                        f"THD: {thd:.1f}% (z={telemetry['z_score']})")
         print(status_line)
 
-        # Detekcija alarma i slanje na alerts topic
+        # Detekcija alarma i slanje na alerts topic (edge-triggered)
         is_anomaly = (z_score > 3.0) and not learning_mode and (z_score >= 0.0)
         is_irms_anomaly = (irms_z > 3.0) and not learning_mode and (irms_z >= 0.0)
 
-        if is_anomaly or is_irms_anomaly:
+        trigger_thd = False
+        if is_anomaly:
+            if not thd_anomaly_active:
+                thd_anomaly_active = True
+                trigger_thd = True
+        else:
+            thd_anomaly_active = False
+
+        trigger_irms = False
+        if is_irms_anomaly:
+            if not irms_anomaly_active:
+                irms_anomaly_active = True
+                trigger_irms = True
+        else:
+            irms_anomaly_active = False
+
+        if trigger_thd or trigger_irms:
             alert = {
                 "device_id": DEVICE_ID,
                 "irms_a": round(irms, 3),
                 "thd_pct": round(thd, 1),
-                "z_score": round(z_score if is_anomaly else irms_z, 2),
-                "alert_type": "thd_drift" if is_anomaly else "irms_drift"
+                "z_score": round(z_score if trigger_thd else irms_z, 2),
+                "alert_type": "thd_drift" if trigger_thd else "irms_drift"
             }
             client.publish(f"volmax/{DEVICE_ID}/alerts", json.dumps(alert))
             print(f"  >>> [ALERT POSLAT] Tip: {alert['alert_type']} | Z: {alert['z_score']}")
